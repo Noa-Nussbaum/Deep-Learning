@@ -16,7 +16,6 @@ if __name__ == '__main__':
 
     address = r'/Users/nnussbaum/PycharmProjects/pythonProject6/venv/lib/data.csv'
     df = pd.read_csv(address)
-    print(df.shape)
 
     # change features with words  to numbers
     labelencoder = LabelEncoder()
@@ -30,10 +29,8 @@ if __name__ == '__main__':
     df['MaritalStatus'] = labelencoder.fit_transform(df['MaritalStatus'])
     df['Over18'] = labelencoder.fit_transform(df['Over18'])
     df['OverTime'] = labelencoder.fit_transform(df['OverTime'])
-    print(df.head(3))
 
     # df = pd.get_dummies(df, columns=['Fuel_Type', 'Seller_Type', 'Transmission'])
-
 
     # Split data into training and testing sets
 
@@ -57,7 +54,7 @@ if __name__ == '__main__':
     features = 34
     classes = 4
 
-    epochs = 500
+    epochs = 1000
 
     X = tf.placeholder(tf.float64, [None, features])
     Y = tf.placeholder(tf.float64, [None, classes])
@@ -71,7 +68,7 @@ if __name__ == '__main__':
 
     train_prediction = tf.nn.softmax(pred)
 
-    optimizer = tf.train.GradientDescentOptimizer(0.000001).minimize(loss)
+    optimizer = tf.train.GradientDescentOptimizer(0.00001).minimize(loss)
 
     # Convert y column to vectors
     def converter(yList):
@@ -87,15 +84,14 @@ if __name__ == '__main__':
                 y_.append((0, 0, 0, 1))
         return numpy.array(y_)
 
-
-    yListTrain=converter(ytrain)
-    yListTest=converter(ytest)
+    yListTrain = converter(ytrain)
+    yListTest = converter(ytest)
 
     with tf.Session() as sess:
 
         sess.run(tf.global_variables_initializer())
 
-        for i in range(1000):
+        for i in range(epochs):
 
             sess.run(optimizer, feed_dict={X: xtrain, Y: yListTrain})
 
