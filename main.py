@@ -1,21 +1,24 @@
+import numpy
+import sklearn.model_selection
 import tensorflow.compat.v1 as tf
-from sklearn.model_selection import train_test_split
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 from sklearn.preprocessing import LabelEncoder
 tf.disable_v2_behavior()
-import nltk
-from nltk.stem import PorterStemmer
-from nltk.tokenize import word_tokenize
+# import nltk
+# from nltk.stem import PorterStemmer
+# from nltk.tokenize import word_tokenize
 import numpy as np
 import csv
 import pandas as pd
 
-
 if __name__ == '__main__':
 
-    address = r'C:\Users\USER\PycharmProjects\pythonProject4\Project\data.csv'
+    address = r'/Users/nnussbaum/PycharmProjects/pythonProject6/venv/lib/data.csv'
     df = pd.read_csv(address)
+    print(df.shape)
 
-    #change features with words  to numbers
+    # change features with words  to numbers
     labelencoder = LabelEncoder()
 
     df['Attrition'] = labelencoder.fit_transform(df['Attrition'])
@@ -27,66 +30,88 @@ if __name__ == '__main__':
     df['MaritalStatus'] = labelencoder.fit_transform(df['MaritalStatus'])
     df['Over18'] = labelencoder.fit_transform(df['Over18'])
     df['OverTime'] = labelencoder.fit_transform(df['OverTime'])
+    print(df.head(3))
 
-    x = df.drop('JobSatisfaction', axis=1)
+    # df = pd.get_dummies(df, columns=['Fuel_Type', 'Seller_Type', 'Transmission'])
 
+
+    # Split data into training and testing sets
+
+    x = df.drop('JobSatisfaction', axis = 1)
     y = df.JobSatisfaction
-    #[1470 rows x 34 columns]
-    initial = x.astype(np.float32)
-    yList = y.tolist()
-    y_ = {}
-    for i in range(0 , len(yList)):
-        if yList[i]==1:
-            y_[i] =(1,0,0,0)
-        if yList[i]==2:
-            y_[i] =(0,1,0,0)
-        if yList[i]==3:
-            y_[i] =(0,0,1,0)
-        if yList[i]==4:
-            y_[i] =(0,0,0,1)
+
+    # Split your dataset
+    train = df[:70]
+    test = df[70:]
+
+    xtrain = train.drop(columns=['JobSatisfaction'], axis=1).values
+    xtest = test.drop(columns=['JobSatisfaction'], axis=1).values
+
+    ytrain = train['JobSatisfaction'].values
+    ytest = test['JobSatisfaction'].values
+
+    ytrain = ytrain[:,np.newaxis]
+    ytest = ytest[:,np.newaxis]
+
+    # Linear regression
+    features = 34
+    classes = 4
+
+    epochs = 500
+
+    X = tf.placeholder(tf.float64, [None, features])
+    Y = tf.placeholder(tf.float64, [None, classes])
+
+    W = tf.Variable(tf.zeros([features, classes], dtype=tf.dtypes.float64, name="weight"))
+    b = tf.Variable(tf.zeros([classes], dtype=tf.dtypes.float64, name="bias"))
+
+    pred = tf.matmul(X,W) + b
+
+    loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=Y, logits=pred))
+
+    train_prediction = tf.nn.softmax(pred)
+
+    optimizer = tf.train.GradientDescentOptimizer(0.000001).minimize(loss)
+
+    # Convert y column to vectors
+    def converter(yList):
+        y_ = []
+        for i in range(0, len(yList)):
+            if yList[i] == 1:
+                y_.append((1, 0, 0, 0))
+            if yList[i] == 2:
+                y_.append((0, 1, 0, 0))
+            if yList[i] == 3:
+                y_.append((0, 0, 1, 0))
+            if yList[i] == 4:
+                y_.append((0, 0, 0, 1))
+        return numpy.array(y_)
 
 
-    # 35 feature
-    categories = 4
-    features = 35
-    xPlace = tf.placeholder(tf.float32, [None, features])
-    yPlace = tf.placeholder(tf.float32, [None, categories])
-    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
-    #(34,4)
-    W = tf.Variable(tf.zeros([34, categories]))
-    #(1470,4)
-    b = tf.Variable(tf.zeros([1470,4]))
-    #[1470 rows x 34 columns]
+    yListTrain=converter(ytrain)
+    yListTest=converter(ytest)
 
-    pred = tf.nn.softmax(tf.matmul(initial, W) + b)
-    #loss = -tf.reduce_mean(tf.log(pred) *y )
-    mat = tf.matmul( initial,W)
-    # print(mat.shape)
-    # print(type(mat))
-    # print(b.shape)
-    yMat = np.array([y_[i] for i in y_.keys()])
+    with tf.Session() as sess:
 
-    entro = tf.nn.softmax_cross_entropy_with_logits_v2(yMat,b+ mat )
-    # print(entro)
-    # print(yMat)
-    # labels, logits, axis = None, name = None, dim = None
-    loss = tf.math.reduce_mean(entro,y_)
-   # loss = -tf.reduce_mean(y_ * tf.log(pred))
+        sess.run(tf.global_variables_initializer())
 
-    # loss = tf.reduce_mean(-(y_ * tf.log(pred) + (1 - y) * tf.log(1 -pred)))
+        for i in range(1000):
+
+            sess.run(optimizer, feed_dict={X: xtrain, Y: yListTrain})
+
+        print("\nOptimization Finished!\n")
+
+        correct_prediction = tf.equal(tf.argmax(train_prediction, 1), tf.argmax(Y, 1))
+        accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+        print(sess.run(accuracy, feed_dict={X: xtest, Y: yListTest}))
 
 
-    update = tf.train.GradientDescentOptimizer(0.001).minimize(loss)
-    # accuracy = tf.reduce_mean(tf.cast(update, tf.float32))
 
-    sess = tf.Session()
-    sess.run(tf.global_variables_initializer())
 
-    for i in range(0, 10000):
 
-        sess.run(update, feed_dict={x: x_train, y: y_train})
 
-    correct_prediction = tf.equal(tf.argmax(pred, 1), tf.argmax(y_, 1))
-    accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-    print(sess.run(accuracy, feed_dict={x: x_test, y_: y_test}))
+
+
+
+
 
