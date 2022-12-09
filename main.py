@@ -101,6 +101,80 @@ if __name__ == '__main__':
         accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
         print(sess.run(accuracy, feed_dict={X: xtest, Y: yListTest}))
 
+#         Let's add a neural network
+
+    xholder = tf.placeholder(tf.float32, [None, features])
+    yholder = tf.placeholder(tf.float32, [None, classes])
+
+    # Layer 1
+    layer_1 = 70
+    W1 = tf.Variable(tf.truncated_normal([features, layer_1], dtype=tf.dtypes.float32, stddev=0.1))
+    b1 = tf.Variable(tf.constant(0.1,dtype=tf.dtypes.float32, shape=[layer_1]))
+    z1 = tf.add(tf.matmul(xholder, W1), b1)
+    # a1 = tf.nn.leaky_relu(z1)
+    a1 = tf.nn.elu(z1)
+
+    # Layer 2
+    layer_2 = 70
+    W2 = tf.Variable(tf.truncated_normal([layer_1, layer_2], stddev=0.1))
+    b2 = tf.Variable(tf.constant(0.1, shape=[layer_2]))
+    z2 = tf.add(tf.matmul(a1, W2), b2)
+    # a2 = tf.nn.leaky_relu(z2)
+    a2 = tf.nn.elu(z2)
+
+    # Layer 3
+    layer_3 = 70
+    W3 = tf.Variable(tf.truncated_normal([layer_2, layer_3], stddev=0.1))
+    b3 = tf.Variable(tf.constant(0.1, shape=[layer_3]))
+    z3 = tf.add(tf.matmul(a2, W3), b3)
+    a3 = tf.nn.elu(z3)
+
+    # Layer 4
+    layer_4 = 34
+    W4 = tf.Variable(tf.truncated_normal([layer_3, layer_4], stddev=0.1))
+    b4 = tf.Variable(tf.constant(0.1, shape=[layer_4]))
+    z4 = tf.add(tf.matmul(a3, W4), b4)
+    a4 = tf.nn.elu(z4)
+
+
+    # Output layer 2
+    # W3 = tf.Variable(tf.truncated_normal([layer_2, classes], stddev=0.1))
+    # b3 = tf.Variable(tf.constant(0.1, shape=[classes]))
+    # predLayers = tf.add(tf.matmul(z2, W3), b3)
+
+    # Output layer 3
+    # W4 = tf.Variable(tf.truncated_normal([layer_3, classes], stddev=0.1))
+    # b4 = tf.Variable(tf.constant(0.1, shape=[classes]))
+    # predLayers = tf.add(tf.matmul(z3, W4), b4)
+
+    # Output layer 4
+    W5 = tf.Variable(tf.truncated_normal([layer_4, classes], stddev=0.1))
+    b5 = tf.Variable(tf.constant(0.1, shape=[classes]))
+    predLayers = tf.add(tf.matmul(z4, W5), b5)
+
+    #      Run Softmax
+
+    lossLayers = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=yholder, logits=predLayers))
+
+    train_prediction_layers = tf.nn.softmax(predLayers)
+
+    optimizerLayers = tf.train.GradientDescentOptimizer(0.00001).minimize(lossLayers)
+
+    with tf.Session() as sess:
+
+        sess.run(tf.global_variables_initializer())
+
+        for i in range(epochs):
+
+            sess.run(optimizerLayers, feed_dict={xholder: xtrain, yholder: yListTrain})
+
+        print("\nWith layers Optimization Finished!\n")
+
+        correct_prediction_layers = tf.equal(tf.argmax(train_prediction_layers, 1), tf.argmax(yholder, 1))
+        accuracyLayers = tf.reduce_mean(tf.cast(correct_prediction_layers, tf.float32))
+        print("Layers result:",sess.run(accuracyLayers, feed_dict={xholder: xtest, yholder: yListTest}))
+
+
 
 
 
